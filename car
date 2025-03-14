@@ -1,0 +1,105 @@
+#include <Servo.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+Servo Servo1;
+int initialPosition = 90;
+int targetPosition = 20;
+int step = 2;
+const int triggerPin2 = 10;
+const int echoPin2 = 7;
+// const int triggerPin = 5;
+// const int echoPin = 4;
+const int dustbinLength = 29; // Length of the dustbin in cm
+
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+uint8_t dustbin_open[8] = {0x4, 0xe, 0xe, 0x1f, 0x11, 0xa, 0x0, 0x0};
+
+void setup() {
+  Wire.begin();
+  Serial.begin(9600);
+
+  Servo1.attach(9);
+  Servo1.write(initialPosition);
+
+  // pinMode(triggerPin, OUTPUT);
+  // pinMode(echoPin, INPUT);
+  pinMode(triggerPin2, OUTPUT);
+  pinMode(echoPin2, INPUT);
+
+  lcd.init();
+  lcd.backlight();
+  lcd.createChar(0, dustbin_open);
+  lcd.home();
+}
+
+void loop() {
+  delay(2000);
+  lcd.clear();
+  lcd.print("Dustbin: Closed");
+  // long statusBro = measureDistance(triggerPin, echoPin);
+  long hand = measureDistance(triggerPin2, echoPin2);
+
+  // Serial.print("Dustbin depth: ");
+  // Serial.print(statusBro);
+  // Serial.println(" cm");
+
+  Serial.print("Object Distance: ");
+  Serial.print(hand);
+  Serial.println(" cm");
+
+  // int fillPercentage1 = calculateFillLevel(statusBro);
+  // Serial.print("Fill Level Sensor 1: ");
+  // Serial.print(fillPercentage1);
+  // Serial.println("%");
+
+  if (hand > 10) {
+    Servo1.write(initialPosition);
+    delay(2000);
+    lcd.clear();
+    lcd.print("Dustbin: Closed");
+
+   }
+
+  if (hand <= 20) {
+          if (hand <= 20) {
+          Servo1.write(targetPosition);
+          lcd.clear();
+          lcd.print("Dustbin: Opened");
+          delay(2000);
+
+
+      }
+    // if (statusBro > 5) {
+    //   Servo1.write(targetPosition);
+    //   lcd.clear();
+
+    //   lcd.print("Dustbin: Open");
+    //   delay(5000);
+    //   lcd.clear();
+
+    // }
+  }
+}
+
+long measureDistance(int triggerPin, int echoPin) {
+  long duration, distance;
+  digitalWrite(triggerPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(triggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(triggerPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration / 2) / 29.1; // Divide by 29.1 to convert to cm
+  return distance;
+}
+
+int calculateFillLevel(long distance) {
+  if (distance >= 25) {
+    return 0;
+  } else {
+    int fillPercentage = map(distance, dustbinLength, 0, 0, 100);
+    fillPercentage = constrain(fillPercentage, 0, 100);
+    return fillPercentage;
+  }
+}
